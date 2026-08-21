@@ -51,8 +51,8 @@ export function splitText(text: string, chunkSize = 1000, overlap = 150): string
   // apply overlap
   const merged: string[] = [];
   for (let i = 0; i < raw.length; i++) {
-    const prev = i > 0 ? raw[i - 1].slice(-overlap) : "";
-    merged.push((prev ? prev + " " : "") + raw[i]);
+    const prev = i > 0 ? (raw[i - 1] as string).slice(-overlap) : "";
+    merged.push((prev ? prev + " " : "") + (raw[i] as string));
   }
   return merged;
 }
@@ -97,9 +97,11 @@ export function cosineSimilarity(a: number[], b: number[]): number {
   let na = 0;
   let nb = 0;
   for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    na += a[i] * a[i];
-    nb += b[i] * b[i];
+    const ai = a[i] as number;
+    const bi = b[i] as number;
+    dot += ai * bi;
+    na += ai * ai;
+    nb += bi * bi;
   }
   return dot / (Math.sqrt(na) * Math.sqrt(nb) || 1);
 }

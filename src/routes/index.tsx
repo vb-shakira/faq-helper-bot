@@ -54,7 +54,7 @@ function Index() {
       if (!text) throw new Error("No text could be extracted from this PDF.");
       const pieces = splitText(text);
       const vectors = await embedTexts(pieces, apiKey.trim());
-      setChunks(pieces.map((t, i) => ({ text: t, embedding: vectors[i] })));
+      setChunks(pieces.map((t, i) => ({ text: t, embedding: vectors[i] as number[] })));
       setStatus([
         "Document uploaded",
         "Document processed successfully",
@@ -78,7 +78,8 @@ function Index() {
 
     setBusy(true);
     try {
-      const [queryEmbedding] = await embedTexts([question.trim()], apiKey.trim());
+      const vectors = await embedTexts([question.trim()], apiKey.trim());
+      const queryEmbedding = vectors[0] as number[];
       const context = topChunks(chunks, queryEmbedding)
         .map((c) => c.text)
         .join("\n\n");
