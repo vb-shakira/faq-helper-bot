@@ -1,13 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  answerQuestion,
-  embedTexts,
-  extractPdfText,
-  splitText,
-  topChunks,
-  type Chunk,
-} from "@/lib/rag";
+import { extractPdfText, splitText, topChunks, type Chunk } from "@/lib/rag";
+import { answerFn, embedTextsFn } from "@/lib/rag.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -53,7 +47,9 @@ function Index() {
       const text = await extractPdfText(file);
       if (!text) throw new Error("No text could be extracted from this PDF.");
       const pieces = splitText(text);
-      const vectors = await embedTexts(pieces, apiKey.trim());
+      const { vectors } = await embedTextsFn({
+        data: { apiKey: apiKey.trim(), texts: pieces },
+      });
       setChunks(pieces.map((t, i) => ({ text: t, embedding: vectors[i] as number[] })));
       setStatus([
         "Document uploaded",
@@ -78,12 +74,17 @@ function Index() {
 
     setBusy(true);
     try {
-      const vectors = await embedTexts([question.trim()], apiKey.trim());
+      const { vectors } = await embedTextsFn({
+        data: { apiKey: apiKey.trim(), texts: [question.trim()] },
+      });
       const queryEmbedding = vectors[0] as number[];
       const context = topChunks(chunks, queryEmbedding)
         .map((c) => c.text)
         .join("\n\n");
-      setAnswer(await answerQuestion(question.trim(), context, apiKey.trim()));
+      const { answer: result } = await answerFn({
+        data: { apiKey: apiKey.trim(), question: question.trim(), context },
+      });
+      setAnswer(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

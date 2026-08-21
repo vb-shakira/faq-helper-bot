@@ -57,41 +57,6 @@ export function splitText(text: string, chunkSize = 1000, overlap = 150): string
   return merged;
 }
 
-async function openai(path: string, apiKey: string, body: unknown) {
-  const res = await fetch(`https://api.openai.com/v1/${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const detail = await res.text();
-    let message = detail;
-    try {
-      message = JSON.parse(detail).error?.message ?? detail;
-    } catch {
-      /* keep raw text */
-    }
-    throw new Error(`OpenAI error (${res.status}): ${message}`);
-  }
-  return res.json();
-}
-
-export async function embedTexts(texts: string[], apiKey: string): Promise<number[][]> {
-  const vectors: number[][] = [];
-  for (let i = 0; i < texts.length; i += 64) {
-    const batch = texts.slice(i, i + 64);
-    const data = await openai("embeddings", apiKey, {
-      model: "text-embedding-3-small",
-      input: batch,
-    });
-    for (const item of data.data) vectors.push(item.embedding as number[]);
-  }
-  return vectors;
-}
-
 export function cosineSimilarity(a: number[], b: number[]): number {
   let dot = 0;
   let na = 0;
@@ -112,24 +77,4 @@ export function topChunks(chunks: Chunk[], queryEmbedding: number[], k = 4): Chu
     .sort((x, y) => y.score - x.score)
     .slice(0, k)
     .map((x) => x.c);
-}
-
-export async function answerQuestion(
-  question: string,
-  context: string,
-  apiKey: string,
-): Promise<string> {
-  const data = await openai("chat/completions", apiKey, {
-    model: "gpt-4o-mini",
-    temperature: 0,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You answer questions using only the provided company FAQ context. If the answer is not in the context, say you don't know.",
-      },
-      { role: "user", content: `Context:\n${context}\n\nQuestion: ${question}` },
-    ],
-  });
-  return data.choices?.[0]?.message?.content ?? "No answer returned.";
 }
